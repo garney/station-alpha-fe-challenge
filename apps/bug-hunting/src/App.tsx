@@ -1,65 +1,64 @@
-import { useState } from 'react'
-import './App.css'
-import TodoList from './components/TodoList'
-import TodoForm from './components/TodoForm'
-import TodoFilter from './components/TodoFilter'
+import { useState } from "react";
+import "./App.css";
+import TodoList from "./components/TodoList";
+import TodoForm from "./components/TodoForm";
+import TodoFilter from "./components/TodoFilter";
 
+export interface ToDo {
+  text: string;
+  completed: boolean;
+  id: number;
+}
 const App = () => {
-  const [todos, setTodos] = useState(null)
-  const [filter, setFilter] = useState()
-  
-  const addTodo = (text) => {
-    todos.push({ text, completed: false })
-    setTodos(todos)
-  }
-  
-  const toggleTodo = (id) => {
-    const updatedTodos = todos.map(todo => {
-      if (todo.id == id) {
-        todo.completed = !todo.completed
-        return todo
-      }
-      return todo
-    })
-    setTodos(updatedTodos)
-  }
-  
-  const deleteTodo = () => {
-    const remainingTodos = todos.filter(todo => {
-      return todo.id !== id
-    })
-    setTodos(remainingTodos)
-  }
-  
-  const filteredTodos = () => {
-    if (filter === 'active') {
-      return todos.filter(todo => !todo.completed)
-    } else if (filter === 'completed') {
-      return todos.filter(todo => todo.completed)
-    }
-    return todos
-  }
-  
-  function clearCompleted() {
-    const activeTodos = todos.filter(todo => !todo.completed)
-    setTodos(activeTodos)
-  }
-  
+  const [todos, setTodos] = useState<Array<ToDo>>([]);
+  const [filter, setFilter] = useState("");
+
+  const addTodo = (text: string) => {
+    setTodos([...todos, { text, completed: false, id: Date.now() }]);
+  };
+
+  const toggleTodo = (id: number) => {
+    const updatedTodos = todos.map((todo) =>
+      todo.id === id ? { ...todo, completed: !todo.completed } : todo,
+    );
+    setTodos(updatedTodos);
+  };
+
+  const deleteTodo = (id: number) => {
+    const remainingTodos = todos.filter((todo) => todo.id !== id);
+    setTodos(remainingTodos);
+  };
+
+  const filteredTodos = todos.filter((todo) => {
+    if (filter === "active") return !todo.completed;
+    if (filter === "completed") return todo.completed;
+    return true;
+  });
+
+  const clearCompleted = () => {
+    const activeTodos = todos.filter((todo) => !todo.completed);
+    setTodos(activeTodos);
+  };
+
   return (
     <div className="app">
       <h1>Todo App</h1>
-      
-      <TodoForm />
-      
-      <TodoList 
-        todos={filteredTodos()} 
-        onToggle={toggleTodo} 
-        onDelete={deleteTodo} 
-      />
-      
-      <TodoFilter filter={filter} onClearCompleted={clearCompleted} />
-    </div>
-  )
-}
 
-export default App
+      <TodoForm onAdd={addTodo} />
+
+      <TodoList
+        todos={filteredTodos}
+        onToggle={toggleTodo}
+        onDelete={deleteTodo}
+      />
+
+      <TodoFilter
+        filter={filter}
+        onClearCompleted={clearCompleted}
+        onFilter={setFilter}
+      />
+    </div>
+  );
+};
+
+export default App;

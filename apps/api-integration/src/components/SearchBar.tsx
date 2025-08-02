@@ -1,71 +1,83 @@
-import { useState, useEffect, FormEvent } from 'react';
-import { SearchHistoryItem } from '../App';
-import { searchLocations } from '../services/weatherApi';
+import { useState, useEffect, FormEvent } from "react";
+import { SearchData } from "../App";
+import { searchLocations } from "../services/weatherApi";
 
 interface SearchBarProps {
-  onSearch: (location: string) => void;
-  searchHistory: SearchHistoryItem[];
-  addToSearchHistory: (query: string) => void;
+  onSearch: (location: SearchData) => void;
+  mapValue: string;
 }
-
-const SearchBar = ({ onSearch, searchHistory, addToSearchHistory }: SearchBarProps) => {
-  const [query, setQuery] = useState('');
+interface HistoryData {
+  id: string | number;
+  lat: number;
+  lon: number;
+  name: string;
+  timestamp: number;
+}
+const SearchBar = ({ onSearch, mapValue }: SearchBarProps) => {
+  const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [searchHistory, setSearchHistory] = useState<HistoryData[]>([]);
+
+  const addToSearchHistory = (query: SearchData) => {
+    setSearchHistory(
+      [
+        ...searchHistory.filter((item) => item.name !== query.name),
+        { ...query, timestamp: Date.now() },
+      ].sort((a, b) => b?.timestamp - a?.timestamp),
+    );
+  };
+  const fetchSuggestions = async () => {
+    if (query.length < 3) {
+      setSuggestions([]);
+      return;
+    }
+    try {
+      const results = await searchLocations(query);
+      setSuggestions(results);
+    } catch (error) {
+      console.error("Error fetching suggestions:", error);
+      setSuggestions([]);
+    }
+  };
 
   useEffect(() => {
-    const fetchSuggestions = async () => {
-      if (query.length < 3) {
-        setSuggestions([]);
-        return;
-      }
-
-      try {
-        // TODO: Implement fetching location suggestions
-        // const results = await searchLocations(query);
-        // setSuggestions(results);
-        
-        // Placeholder suggestions for demonstration
-        setSuggestions([
-          { id: 1, name: 'London, UK' },
-          { id: 2, name: 'New York, US' },
-          { id: 3, name: 'Tokyo, Japan' },
-          { id: 4, name: 'Sydney, Australia' },
-          { id: 5, name: 'Paris, France' }
-        ].filter(item => item.name.toLowerCase().includes(query.toLowerCase())));
-      } catch (error) {
-        console.error('Error fetching suggestions:', error);
-        setSuggestions([]);
-      }
-    };
-
+    fetchSuggestions();
     const debounceTimer = setTimeout(fetchSuggestions, 500);
     return () => clearTimeout(debounceTimer);
   }, [query]);
 
+  const hideModal = () => {
+    setShowSuggestions(false);
+    setShowHistory(false);
+  };
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (query.trim()) {
-      onSearch(query);
-      addToSearchHistory(query);
-      setShowSuggestions(false);
-      setShowHistory(false);
+    if (suggestions.length && query.trim()) {
+      onSearch(suggestions[0]);
+      addToSearchHistory(suggestions[0]);
+      hideModal();
     }
   };
 
   const handleSuggestionClick = (suggestion: string) => {
     setQuery(suggestion);
-    onSearch(suggestion);
-    addToSearchHistory(suggestion);
-    setShowSuggestions(false);
+    onSearch(suggestions[0]);
+    addToSearchHistory(suggestions[0]);
+    hideModal();
   };
 
-  const handleHistoryClick = (historyItem: string) => {
-    setQuery(historyItem);
+  const handleHistoryClick = (historyItem: SearchData) => {
+    setQuery(historyItem.name);
     onSearch(historyItem);
-    setShowHistory(false);
+    hideModal();
   };
+
+  useEffect(() => {
+    setQuery("");
+  }, [mapValue]);
 
   return (
     <div className="search-bar-container">
@@ -73,7 +85,7 @@ const SearchBar = ({ onSearch, searchHistory, addToSearchHistory }: SearchBarPro
         <div className="search-input-wrapper">
           <input
             type="text"
-            value={query}
+            value={query || mapValue || ""}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => {
               setShowSuggestions(true);
@@ -86,42 +98,45 @@ const SearchBar = ({ onSearch, searchHistory, addToSearchHistory }: SearchBarPro
             Search
           </button>
         </div>
+        <div className="suggestion-list">
+          {/* Suggestions dropdown */}
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="sugestion">
+              <ul className="suggestions-list">
+                {suggestions.map((suggestion) => (
+                  <li
+                    key={suggestion.id}
+                    onClick={() => handleSuggestionClick(suggestion.name)}
+                    className="suggestion-item"
+                  >
+                    {suggestion.name}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-        {/* Suggestions dropdown */}
-        {showSuggestions && suggestions.length > 0 && (
-          <ul className="suggestions-list">
-            {suggestions.map((suggestion) => (
-              <li
-                key={suggestion.id}
-                onClick={() => handleSuggestionClick(suggestion.name)}
-                className="suggestion-item"
-              >
-                {suggestion.name}
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {/* Search history dropdown */}
-        {showHistory && searchHistory.length > 0 && (
-          <div className="search-history">
-            <h4>Recent Searches</h4>
-            <ul className="history-list">
-              {searchHistory.map((item, index) => (
-                <li
-                  key={index}
-                  onClick={() => handleHistoryClick(item.query)}
-                  className="history-item"
-                >
-                  {item.query}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+          {/* Search history dropdown */}
+          {showHistory && searchHistory.length > 0 && (
+            <div className="search-history">
+              <h4>Recent Searches</h4>
+              <ul className="history-list">
+                {searchHistory.map((item, index) => (
+                  <li
+                    key={index}
+                    onClick={() => handleHistoryClick(item)}
+                    className="history-item"
+                  >
+                    {item.name}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       </form>
     </div>
   );
 };
 
-export default SearchBar; 
+export default SearchBar;
