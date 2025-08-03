@@ -1,31 +1,30 @@
-import { useState } from 'react'
+import { useState } from "react";
 
-// Intentional bug: Missing prop type for onAdd
-const TodoForm = ({ onAdd }) => {
-  // Intentional bug: Input state should probably be string not number
-  const [input, setInput] = useState(0)
+interface Props {
+  onAdd: (name: string) => void;
+}
+const TodoForm = ({ onAdd }: Props) => {
+  const [input, setInput] = useState("");
 
-  // Intentional bug: Not preventing default form submission
-  const handleSubmit = (e) => {
-    // Should call onAdd with input value and reset input
-    onAdd(input)
-    // Intentional bug: Not resetting input after submission
-  }
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+    onAdd(input.trim());
+    setInput("");
+  };
 
   return (
     <form onSubmit={handleSubmit} className="todo-form">
       <input
         type="text"
-        // Intentional bug: Value should be input.toString() since input is a number
         value={input}
-        // Intentional bug: Incorrect event handling
-        onChange={setInput(e.target.value)}
+        onChange={(e) => setInput(e.target.value)}
         placeholder="Add a new todo"
-        // Intentional bug: Missing required attribute
+        required
       />
       <button type="submit">Add Todo</button>
     </form>
-  )
-}
+  );
+};
 
-export default TodoForm 
+export default TodoForm;

@@ -1,5 +1,12 @@
-import { useState } from 'react'
-import './App.css'
+import { useState, useEffect } from "react";
+import "./App.css";
+import SearchBar from "./components/SearchBar";
+import CurrentWeather from "./components/CurrentWeather";
+import Forecast from "./components/Forecast";
+import WeatherMap from "./components/WeatherMap";
+import WeatherAlerts from "./components/WeatherAlerts";
+import { ApiError } from "./errors";
+import { getCurrentWeather, getCachedWeatherData } from "./services/weatherApi";
 
 // Types for weather data
 export interface WeatherData {
@@ -51,10 +58,12 @@ export interface WeatherData {
   };
 }
 
-// Type for search history
-export interface SearchHistoryItem {
-  query: string;
-  timestamp: number;
+export interface SearchData {
+  id: string | number;
+  lat: number;
+  lon: number;
+  name: string;
+  timestamp?: number;
 }
 
 function App() {
@@ -65,10 +74,51 @@ function App() {
   // Error state
   const [error, setError] = useState<string | null>(null);
   // Search query state
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<SearchData | null>(null);
   // Search history
-  const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
-  
+
+  useEffect(() => {
+    let cashedWeather = getCachedWeatherData("weather");
+
+    !!cashedWeather && setWeatherData(cashedWeather);
+  }, []);
+  useEffect(() => {
+    let showLoaderTimeout: ReturnType<typeof setTimeout>;
+    let fetchDebounceTimeout: ReturnType<typeof setTimeout>;
+
+    const fetchWeatherData = async () => {
+      if (!searchQuery) {
+        return;
+      }
+      setError(null);
+      setIsLoading(false);
+
+      showLoaderTimeout = setTimeout(() => {
+        setIsLoading(true);
+      }, 1000);
+      try {
+        const { lat, lon } = searchQuery;
+        const results = await getCurrentWeather(lat, lon);
+        setWeatherData(results);
+      } catch (error) {
+        if (error instanceof ApiError) {
+          setError(`Error ${error.status}: ${error.message}`);
+        } else {
+          setError("Some error");
+        }
+        setWeatherData(null);
+      } finally {
+        clearTimeout(showLoaderTimeout);
+        setIsLoading(false);
+      }
+    };
+    fetchDebounceTimeout = setTimeout(fetchWeatherData, 500);
+    return () => {
+      clearTimeout(fetchDebounceTimeout);
+      clearTimeout(showLoaderTimeout);
+    };
+  }, [searchQuery]);
+
   return (
     <div className="weather-app">
       <header className="app-header">
@@ -82,19 +132,26 @@ function App() {
         <section className="instructions">
           <h2>API Integration Challenge</h2>
           <p>
-            Welcome to the Weather Dashboard API Integration Challenge! Your task is to implement
-            a weather application that integrates with a public weather API.
+            Welcome to the Weather Dashboard API Integration Challenge! Your
+            task is to implement a weather application that integrates with a
+            public weather API.
           </p>
           <div className="task-list">
             <h3>Your Tasks:</h3>
             <ol>
               <li>
                 <strong>Current Weather Display</strong>
-                <p>Implement a search function and display current weather conditions for the searched location.</p>
+                <p>
+                  Implement a search function and display current weather
+                  conditions for the searched location.
+                </p>
               </li>
               <li>
                 <strong>Search Functionality</strong>
-                <p>Add autocomplete/suggestions for city search and remember recent searches.</p>
+                <p>
+                  Add autocomplete/suggestions for city search and remember
+                  recent searches.
+                </p>
               </li>
               <li>
                 <strong>Extended Forecast</strong>
@@ -102,76 +159,96 @@ function App() {
               </li>
               <li>
                 <strong>Weather Map</strong>
-                <p>Implement a visual map showing weather patterns and allow users to select locations from the map.</p>
+                <p>
+                  Implement a visual map showing weather patterns and allow
+                  users to select locations from the map.
+                </p>
               </li>
               <li>
                 <strong>Weather Alerts</strong>
-                <p>Display any weather alerts or warnings for the selected location.</p>
+                <p>
+                  Display any weather alerts or warnings for the selected
+                  location.
+                </p>
               </li>
             </ol>
           </div>
           <div className="api-info">
             <h3>Recommended APIs:</h3>
             <ul>
-              <li><a href="https://www.weatherapi.com/" target="_blank" rel="noopener noreferrer">WeatherAPI.com</a></li>
-              <li><a href="https://openweathermap.org/api" target="_blank" rel="noopener noreferrer">OpenWeatherMap</a></li>
-              <li><a href="https://www.visualcrossing.com/weather-api" target="_blank" rel="noopener noreferrer">Visual Crossing Weather</a></li>
+              <li>
+                <a
+                  href="https://www.weatherapi.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  WeatherAPI.com
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://openweathermap.org/api"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  OpenWeatherMap
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://www.visualcrossing.com/weather-api"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Visual Crossing Weather
+                </a>
+              </li>
             </ul>
           </div>
         </section>
 
         <section className="implementation-area">
           <h2>Your Implementation</h2>
-          
-          {/* Search Component Placeholder */}
-          <div className="search-container">
-            <input 
-              type="text" 
-              placeholder="Search for a city..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <button>Search</button>
-          </div>
 
+          {/* Search Component Placeholder */}
+          <SearchBar
+            onSearch={setSearchQuery}
+            mapValue={
+              weatherData
+                ? `${weatherData?.location.name}, ${weatherData?.location.country}`
+                : ""
+            }
+          />
           {/* Weather Display Placeholders */}
           <div className="weather-display">
-            {isLoading && <div className="loading">Loading weather data...</div>}
-            
             {error && <div className="error-message">{error}</div>}
-            
+
             {!isLoading && !error && !weatherData && (
               <div className="no-data">
                 Search for a location to see weather information
               </div>
             )}
-            
-            {weatherData && (
+
+            {weatherData && !isLoading && (
               <div className="weather-content">
                 {/* Current Weather Placeholder */}
-                <div className="current-weather">
-                  <h3>Current Weather Placeholder</h3>
-                  <p>Implement the current weather display here</p>
-                </div>
-                
+                <CurrentWeather weatherData={weatherData} />
+
                 {/* Forecast Placeholder */}
-                <div className="forecast">
-                  <h3>Forecast Placeholder</h3>
-                  <p>Implement the 5-day forecast here</p>
-                </div>
-                
+                <Forecast weatherData={weatherData} />
+
                 {/* Weather Map Placeholder */}
-                <div className="weather-map">
-                  <h3>Weather Map Placeholder</h3>
-                  <p>Implement the weather map here</p>
-                </div>
-                
+                <WeatherMap
+                  weatherData={weatherData}
+                  onLocationSelect={setSearchQuery}
+                />
+
                 {/* Alerts Placeholder */}
-                <div className="weather-alerts">
-                  <h3>Weather Alerts Placeholder</h3>
-                  <p>Implement weather alerts here</p>
-                </div>
+                <WeatherAlerts weatherData={weatherData} />
               </div>
+            )}
+            {isLoading && (
+              <div className="loading">Loading weather data...</div>
             )}
           </div>
         </section>
@@ -179,7 +256,8 @@ function App() {
 
       <footer className="app-footer">
         <p>
-          API Integration Challenge | Created for Station Alpha Frontend Developer Interviews
+          API Integration Challenge | Created for Station Alpha Frontend
+          Developer Interviews
         </p>
       </footer>
     </div>

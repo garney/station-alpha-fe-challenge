@@ -1,9 +1,17 @@
-import React from 'react';
-import './App.css';
-import ButtonExample from './components/ButtonExample';
+import React from "react";
+import "./App.css";
+import ButtonExample from "./components/ButtonExample";
+import Button from "./button";
+import PlaneIcon from "./components/icons/PlaneIcon";
+import CheckedIcon from "./components/icons/CheckedIcon";
 
 const App: React.FC = () => {
-
+  const buttonData = {
+    textDefault: "Book a flight",
+    textSucces: "Flight booked",
+    iconDefault: <PlaneIcon />,
+    iconSucces: <CheckedIcon />,
+  };
   return (
     <div className="app">
       <header className="app-header">
@@ -14,9 +22,9 @@ const App: React.FC = () => {
         <section className="challenge-description">
           <h2>Challenge Requirements</h2>
           <p>
-            Create a reusable button component that replicates the animation shown in the example.
+            Create a reusable button component that replicates the animation
+            shown in the example.
           </p>
-          
         </section>
 
         <section className="examples-section">
@@ -28,8 +36,7 @@ const App: React.FC = () => {
           <h2>Your Solution</h2>
           <p>Implement your animated button component and showcase it below:</p>
           <div className="solution-demo">
-            {/* Replace this comment with your AnimatedButton component */}
-            <div className="placeholder-button">Your button will go here</div>
+            <Button data={buttonData} />
           </div>
         </section>
       </main>
@@ -41,4 +48,4 @@ const App: React.FC = () => {
   );
 };
 
-export default App; 
+export default App;

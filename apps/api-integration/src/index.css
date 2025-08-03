@@ -235,14 +235,14 @@ button:focus-visible {
 }
 
 .forecast-cards {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
   overflow-x: auto;
   gap: 1rem;
   padding-bottom: 0.5rem;
 }
 
 .forecast-day {
-  min-width: 120px;
   padding: 1rem;
   background-color: #f9f9f9;
   border-radius: 8px;
@@ -315,6 +315,7 @@ button:focus-visible {
 .map-controls {
   display: flex;
   justify-content: space-between;
+  gap: 0.5rem;
   margin-bottom: 1rem;
 }
 
@@ -330,6 +331,10 @@ button:focus-visible {
   border: 1px solid #ddd;
   border-radius: 4px;
   cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1;
+  flex-basis: 0;
 }
 
 .map-type-selector button.active {
@@ -341,6 +346,7 @@ button:focus-visible {
 .zoom-controls {
   display: flex;
   gap: 0.25rem;
+ 
 }
 
 .map-container {
@@ -372,6 +378,7 @@ button:focus-visible {
 }
 
 .map-footer {
+  flex-direction: column;
   margin-top: 1rem;
   font-size: 0.875rem;
   color: #666;
